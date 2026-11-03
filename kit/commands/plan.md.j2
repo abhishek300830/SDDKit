@@ -1,0 +1,50 @@
+# /plan — Write an Implementation Plan
+
+Read the approved `specs/<feature>/spec.md` and write a technical
+implementation plan to `specs/<feature>/plan.md`.
+
+## Instructions
+
+1. Confirm `specs/<feature>/spec.md` exists and is approved
+   (`sddkit approve <feature> spec` must have been run).
+2. Write `specs/<feature>/plan.md` using the template below.
+3. **Every REQ-NNN from the spec must be cited at least once in this plan.**
+   The checker will flag any missing ones.
+4. After writing, remind the user to run:
+   ```
+   sddkit check <feature>
+   sddkit approve <feature> plan
+   ```
+
+## plan.md Template
+
+```markdown
+# Plan: <Feature Name>
+
+## Summary
+<!-- One paragraph technical summary of the approach. -->
+
+## Architecture Changes
+<!-- List files and modules that will be created or modified. -->
+
+## Implementation Steps
+
+### Step 1 — <title>
+<!-- Description. REQ-NNN -->
+
+### Step 2 — <title>
+<!-- Description. REQ-NNN, REQ-NNN -->
+
+## Data / Schema Changes
+<!-- DB migrations, API schema changes, config changes. -->
+
+## Dependencies
+<!-- New libraries or services required. -->
+
+## Risk & Mitigations
+<!-- Potential failure modes and how they are handled. -->
+```
+
+## Constraints
+- Do not reference any requirement not in `spec.md`.
+- Do not begin writing tasks until the plan is approved.

@@ -1,0 +1,51 @@
+# /tasks — Break Down the Plan into Tasks
+
+Read the approved `specs/<feature>/plan.md` and write a detailed task
+breakdown to `specs/<feature>/tasks.md`.
+
+## Instructions
+
+1. Confirm `specs/<feature>/plan.md` exists and is approved
+   (`sddkit approve <feature> plan` must have been run).
+2. Write `specs/<feature>/tasks.md` using the template below.
+3. **Every REQ-NNN from the spec must be cited in at least one task.**
+4. **Every task that involves new logic must include a corresponding test task.**
+5. After writing, remind the user to run:
+   ```
+   sddkit check <feature>
+   sddkit approve <feature> tasks
+   ```
+
+## tasks.md Template
+
+```markdown
+# Tasks: <Feature Name>
+
+## Task List
+
+- [ ] TASK-01: <title>  <!-- REQ-NNN -->
+  - Description: ...
+  - File(s): `src/...`
+  - Done when: ...
+
+- [ ] TASK-02: <title>  <!-- REQ-NNN -->
+  - Description: ...
+  - File(s): `src/...`
+  - Done when: ...
+
+- [ ] TASK-03: Write tests for <component>  <!-- REQ-NNN -->
+  - Test file: `tests/test_....py`
+  - Covers: REQ-NNN, REQ-NNN
+  - Done when: all tests pass with `pytest`
+
+## Definition of Done
+- [ ] All tasks completed
+- [ ] `sddkit check <feature>` exits 0
+- [ ] All tests pass
+- [ ] PR description links to spec
+```
+
+## Constraints
+- Tasks must be small enough to complete in one session.
+- Every REQ-NNN must appear in at least one task AND at least one test task.
+- Do not begin implementation until all three stages are approved.

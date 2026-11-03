@@ -1,0 +1,4 @@
+{
+  "pass": false,
+  "description": "REQ-003 is in spec and plan but missing from tasks — checker must fail."
+}

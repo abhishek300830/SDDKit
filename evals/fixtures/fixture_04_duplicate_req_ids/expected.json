@@ -1,0 +1,4 @@
+{
+  "pass": false,
+  "description": "REQ-001 appears twice in spec.md — duplicate ID must be flagged as a parse error."
+}

@@ -1,0 +1,48 @@
+# /spec — Write a Specification
+
+Write a detailed specification for the described feature and save it to
+`specs/<feature>/spec.md`.
+
+## Instructions
+
+1. Ask the user for the feature name if it is not already provided.
+2. Create the directory `specs/<feature>/` if it does not exist.
+3. Write `specs/<feature>/spec.md` using the template below.
+4. Every requirement **must** have a unique ID in the form `REQ-NNN`
+   (three zero-padded digits, e.g. `REQ-001`).
+5. Do **not** begin implementation. The spec stage is for requirements only.
+6. After writing, remind the user to run:
+   ```
+   sddkit check <feature>
+   sddkit approve <feature> spec
+   ```
+
+## spec.md Template
+
+```markdown
+# Spec: <Feature Name>
+
+## Overview
+<!-- One paragraph describing what this feature does and why. -->
+
+## Requirements
+
+| ID | Requirement | Priority |
+|---|---|---|
+| REQ-001 | ... | High |
+| REQ-002 | ... | Medium |
+| REQ-003 | ... | Low |
+
+## Out of Scope
+<!-- Explicitly list what this feature does NOT do. -->
+
+## Open Questions
+<!-- List any unresolved questions that must be answered before implementation. -->
+
+## Acceptance Criteria
+<!-- High-level conditions under which the feature is "done". -->
+```
+
+## Constraints
+- IDs must be unique within the spec. The checker (`sddkit check`) will flag duplicates.
+- Do not start plan, tasks, or implementation until this spec is approved.

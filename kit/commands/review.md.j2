@@ -1,0 +1,61 @@
+# /review — Review the Implementation
+
+Review the completed implementation for `<feature>` against the spec,
+plan, tasks, and (optionally) a domain pack.
+
+## Usage
+
+```
+/review
+/review --pack payments
+```
+
+## Instructions
+
+1. Run the deterministic checks:
+   ```bash
+   sddkit check <feature>    # must be green
+   pytest                    # must pass
+   ```
+2. Read `specs/<feature>/spec.md`, `plan.md`, and `tasks.md`.
+3. Read the implementation files listed in the tasks.
+4. Apply the **Validator Checklist** below.
+5. If a domain pack is specified (e.g. `--pack payments`), also apply the
+   pack checklist from `kit/packs/<pack>.md`.
+6. Write a review comment inline or as a summary — do NOT modify source files.
+
+## Validator Checklist
+
+- [ ] Every REQ-NNN in the spec is implemented.
+- [ ] Every REQ-NNN in the spec has at least one test.
+- [ ] `sddkit check <feature>` exits 0.
+- [ ] All tests pass (`pytest`).
+- [ ] No undocumented scope creep (code does more than the spec says).
+- [ ] Error paths are handled explicitly (no silent failures).
+- [ ] No hard-coded secrets, credentials, or environment-specific paths.
+
+## Domain Pack (if --pack is specified)
+
+Load and apply `kit/packs/<pack>.md`. Every item in that checklist must
+be explicitly addressed — either confirmed as implemented, or noted as
+out of scope with a reason.
+
+## Output
+
+Write a final review summary:
+```markdown
+## Review Summary — <Feature>
+
+**Status:** PASS / NEEDS CHANGES
+
+### Passed checks
+- ...
+
+### Issues
+- [ ] REQ-003 test is missing — test file `tests/test_refund.py` does not
+      reference REQ-003.
+
+### Domain pack (payments)
+- [x] Idempotency key validated on all POST endpoints.
+- [ ] Partial failure rollback is not implemented — out of scope per spec §4.
+```

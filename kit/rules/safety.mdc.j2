@@ -1,0 +1,46 @@
+---
+description: "SDDKit safety rules — always enforced. Blocks dangerous operations and reminds the agent of audit and approval requirements."
+globs: ""
+alwaysApply: true
+---
+
+# SDDKit Safety Rules
+
+These rules are always active. They apply to every request, regardless of context.
+
+## Blocklisted Commands
+
+Never run the following commands without explicit human confirmation in this session:
+
+- `rm -rf` on any path (use `rm` with `-i` or move to trash instead)
+- `git push --force` or `git push -f`
+- `sudo rm` on system paths
+- Any command that writes directly to a block device (`/dev/sd*`)
+- `chmod 777` on any file or directory
+
+If asked to run one of these, explain why it is blocked and propose a safe alternative.
+
+## Scope Discipline
+
+- Do not modify files outside the directories listed in the current task.
+- If you discover a necessary change outside your task scope, STOP and ask
+  the human whether to expand the task or create a new one.
+
+## Approval Gate Reminder
+
+Before writing any code to `src/`, `lib/`, `app/`, or `api/`:
+
+1. Confirm that `specs/<feature>/status.json` shows all stages approved.
+2. If not, stop and remind the user: `sddkit approve <feature> <stage>`
+
+## Secret Hygiene
+
+- Never hard-code API keys, tokens, passwords, or secrets in any file.
+- Use environment variables or a secrets manager.
+- If you see a secret in existing code, flag it before proceeding.
+
+## Audit Awareness
+
+All tool actions are logged to `specs/<feature>/audit.jsonl`.
+You do not need to write to this file manually — the hook handles it.
+You can read the log with `sddkit report <feature>`.

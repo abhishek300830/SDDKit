@@ -1,0 +1,4 @@
+{
+  "pass": false,
+  "description": "REQ-002 and REQ-003 are defined in spec but completely omitted from plan and tasks — checker must fail."
+}

@@ -1,0 +1,38 @@
+# /implement — Implement the Approved Tasks
+
+Begin implementing the feature described in `specs/<feature>/tasks.md`.
+
+## Pre-flight Checks (run these FIRST, before writing any code)
+
+```bash
+sddkit check <feature>     # must exit 0
+```
+
+Then verify all three stages are approved:
+```bash
+cat specs/<feature>/status.json
+# "spec":  { "approved": true, ... }
+# "plan":  { "approved": true, ... }
+# "tasks": { "approved": true, ... }
+```
+
+**If any stage is not approved, STOP. Do not write any source code.**
+Ask the user to run `sddkit approve <feature> <stage>`.
+
+## Instructions
+
+1. Work through tasks in `specs/<feature>/tasks.md` top-to-bottom.
+2. Mark each task `[x]` as you complete it.
+3. Write tests alongside the implementation — do not defer them.
+4. After completing all tasks, run:
+   ```bash
+   pytest
+   sddkit check <feature>
+   ```
+   Both must pass before asking for review.
+
+## Constraints
+- Only modify files listed in the task descriptions.
+- Do not add new requirements — if scope changes, update the spec first.
+- Every commit message should reference the feature:
+  `feat(refund): implement REQ-001 — idempotency key validation`

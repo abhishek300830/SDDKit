@@ -1,0 +1,76 @@
+---
+description: "SDDKit workflow rules — enforces spec-driven development stages and approval gates for Cursor. Always active."
+globs: ""
+alwaysApply: true
+---
+
+# SDDKit Workflow Rules
+
+These rules define the mandatory development workflow for this repository.
+
+## The Five Stages (in order)
+
+```
+/spec → /plan → /tasks → /implement → /review
+```
+
+You must complete and get human approval for each stage before proceeding to
+the next. Do not skip stages.
+
+## Stage Enforcement
+
+### Before /plan
+- `specs/<feature>/spec.md` must exist and be approved.
+- Run: `sddkit approve <feature> spec`
+
+### Before /tasks
+- `specs/<feature>/plan.md` must exist and be approved.
+- Run: `sddkit approve <feature> plan`
+
+### Before /implement
+- ALL THREE stages must be approved:
+  ```bash
+  cat specs/<feature>/status.json
+  # All three: "approved": true
+  ```
+- `sddkit check <feature>` must exit 0.
+- **If either check fails, do NOT write any source code.**
+
+### Before /review
+- All implementation tasks must be marked `[x]` in `tasks.md`.
+- All tests must pass: `pytest`
+- `sddkit check <feature>` must exit 0.
+
+## Requirement Traceability (Cursor Enforcement)
+
+> **Note:** Unlike Claude Code, Cursor does not have real-time hook-based
+> gate enforcement. Enforcement is handled by:
+> 1. `sddkit check <feature>` (run manually or in pre-commit)
+> 2. CI (`sddkit eval` in GitHub Actions)
+> 3. These always-apply rules
+
+Always cite REQ-NNN IDs in plan steps, task descriptions, and test names.
+The traceability checker will fail CI if any REQ-ID is uncovered.
+
+## Writing Specs
+
+- Every requirement must have a unique ID: `REQ-NNN` (3 digits, zero-padded).
+- Example: `REQ-001`, `REQ-042`, `REQ-100`
+- Duplicate IDs are a hard error in `sddkit check`.
+
+## Commit Messages
+
+Use this format so requirements are traceable in git history:
+```
+feat(<feature>): implement REQ-001 — <short description>
+test(<feature>): add tests for REQ-001 and REQ-002
+fix(<feature>): correct edge case in REQ-003 handler
+```
+
+## Reporting
+
+After implementation, run:
+```bash
+sddkit report <feature>
+```
+This shows the audit log summary (what was allowed, what was blocked).

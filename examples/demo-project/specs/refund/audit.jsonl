@@ -1,0 +1,5 @@
+{"timestamp":"2025-01-10T10:05:00+00:00","feature":"refund","tool":"Write","input_summary":"file_path=src/refund/eligibility.py","allowed":false,"reason":"Feature 'refund' approval gates are open. All three stages (spec, plan, tasks) must be approved."}
+{"timestamp":"2025-01-10T12:05:00+00:00","feature":"refund","tool":"Write","input_summary":"file_path=src/refund/eligibility.py","allowed":true,"reason":""}
+{"timestamp":"2025-01-10T12:10:00+00:00","feature":"refund","tool":"Write","input_summary":"file_path=src/refund/provider.py","allowed":true,"reason":""}
+{"timestamp":"2025-01-10T12:15:00+00:00","feature":"refund","tool":"Write","input_summary":"file_path=src/refund/notifications.py","allowed":true,"reason":""}
+{"timestamp":"2025-01-10T12:20:00+00:00","feature":"refund","tool":"Bash","input_summary":"command=pytest tests/","allowed":true,"reason":""}

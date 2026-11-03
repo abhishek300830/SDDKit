@@ -1,0 +1,255 @@
+#!/usr/bin/env python3
+"""SDDKit PreToolUse Hook — Claude Code safety and approval gate enforcer.
+
+This script is invoked by Claude Code before every tool execution matching
+"Write|Edit|Create|Bash" (configured in .claude/settings.json).
+
+Input (stdin):  JSON object with tool_name and tool_input.
+Output (stdout): JSON decision object (allow or deny).
+Exit code:      0 = allow or structured deny via stdout JSON.
+                2 = hard deny (Claude Code reads stderr for the reason).
+
+Design principles
+-----------------
+- Deterministic. No LLM, no network calls.
+- Fail-safe. On any unexpected error, ALLOW (do not block the user).
+- Fast. Must complete in < 1 second (hook timeout: 10 s).
+- Cross-platform. Pure Python 3.10+, no third-party imports.
+
+Gate enforcement
+----------------
+A write to ``src/`` or any source file is blocked if ANY approval gate
+for the active feature is open (spec/plan/tasks not all approved).
+
+The "active feature" is detected from the feature that has the most
+recently modified status.json, falling back to denying if none exists.
+
+Blocklist
+---------
+Bash commands matching the blocklist are always denied regardless of gates.
+"""
+from __future__ import annotations
+
+import json
+import os
+import re
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
+
+# Bash command fragments that are always blocked
+_BLOCKLIST: list[tuple[str, str]] = [
+    (r"rm\s+-rf", "Destructive recursive delete is blocked."),
+    (r"git\s+push\s+--force", "Force push is blocked."),
+    (r"git\s+push\s+-f\b", "Force push is blocked."),
+    (r"sudo\s+rm", "sudo rm is blocked."),
+    (r">\s*/dev/sd[a-z]", "Direct disk writes are blocked."),
+    (r"chmod\s+777", "chmod 777 is blocked (use least-privilege instead)."),
+]
+
+# Tool names that write source files
+_WRITE_TOOLS = {"Write", "Edit", "Create", "MultiEdit"}
+
+# Directories considered "source" — writes here require gate approval
+_SOURCE_DIRS = {"src", "lib", "app", "api", "core"}
+
+# Path to this hook (used to locate the repo root)
+_HOOK_PATH = Path(__file__).resolve()
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _repo_root() -> Path:
+    """Walk upward from the hook to find the repo root (contains pyproject.toml)."""
+    candidate = _HOOK_PATH.parent
+    for _ in range(10):
+        if (candidate / "pyproject.toml").exists() or (candidate / ".git").exists():
+            return candidate
+        candidate = candidate.parent
+    return Path.cwd()
+
+
+def _find_active_feature(repo_root: Path) -> str | None:
+    """Return the feature with the most recently modified status.json, or None."""
+    specs_dir = repo_root / "specs"
+    if not specs_dir.exists():
+        return None
+    best_time: float = 0.0
+    best_feature: str | None = None
+    for status_file in specs_dir.rglob("status.json"):
+        mtime = status_file.stat().st_mtime
+        if mtime > best_time:
+            best_time = mtime
+            best_feature = status_file.parent.name
+    return best_feature
+
+
+def _is_gate_open(feature: str, repo_root: Path) -> bool:
+    """Return True if any approval stage is not yet approved."""
+    status_path = repo_root / "specs" / feature / "status.json"
+    if not status_path.exists():
+        return True  # No status file = gates are open
+    try:
+        data = json.loads(status_path.read_text(encoding="utf-8"))
+    except Exception:
+        return True  # Unreadable = fail-safe open
+    for stage in ("spec", "plan", "tasks"):
+        stage_data = data.get(stage, {})
+        if not stage_data.get("approved", False):
+            return True
+    return False
+
+
+def _log_action(
+    feature: str,
+    tool: str,
+    input_summary: str,
+    allowed: bool,
+    reason: str,
+    repo_root: Path,
+) -> None:
+    """Append one record to specs/<feature>/audit.jsonl (best-effort)."""
+    record = {
+        "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+        "feature": feature,
+        "tool": tool,
+        "input_summary": input_summary,
+        "allowed": allowed,
+        "reason": reason,
+    }
+    try:
+        log_path = repo_root / "specs" / feature / "audit.jsonl"
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        with log_path.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(record) + "\n")
+    except Exception:
+        pass  # Audit failure must never block the user
+
+
+def _deny(reason: str) -> None:
+    """Print a structured deny response and exit 0 (Claude Code reads JSON)."""
+    response = {
+        "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": reason,
+        }
+    }
+    print(json.dumps(response))
+    sys.exit(0)
+
+
+def _allow() -> None:
+    """Exit 0 with no stdout output — Claude Code falls through to normal flow."""
+    sys.exit(0)
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+def main() -> None:
+    """Hook entry point."""
+    # Read stdin
+    try:
+        payload = json.loads(sys.stdin.read())
+    except Exception:
+        _allow()  # Malformed input — fail-safe allow
+        return
+
+    tool_name: str = payload.get("tool_name", "")
+    tool_input: dict = payload.get("tool_input", {})
+
+    repo_root = _repo_root()
+
+    # ------------------------------------------------------------------
+    # 1. Blocklist check (applies to Bash tool)
+    # ------------------------------------------------------------------
+    if tool_name == "Bash":
+        command: str = tool_input.get("command", "")
+        for pattern, reason in _BLOCKLIST:
+            if re.search(pattern, command, re.IGNORECASE):
+                feature = _find_active_feature(repo_root) or "unknown"
+                _log_action(
+                    feature=feature,
+                    tool=tool_name,
+                    input_summary=f"command={command[:120]}",
+                    allowed=False,
+                    reason=reason,
+                    repo_root=repo_root,
+                )
+                _deny(f"SDDKit Safety: {reason}")
+                return
+
+    # ------------------------------------------------------------------
+    # 2. Source-file write gate check
+    # ------------------------------------------------------------------
+    if tool_name in _WRITE_TOOLS:
+        file_path_str: str = tool_input.get("file_path", "")
+        if file_path_str:
+            # Normalise the path
+            try:
+                file_path = Path(file_path_str)
+                if not file_path.is_absolute():
+                    file_path = repo_root / file_path
+                rel = file_path.relative_to(repo_root)
+                top_dir = rel.parts[0] if rel.parts else ""
+            except ValueError:
+                top_dir = ""
+
+            if top_dir in _SOURCE_DIRS:
+                feature = _find_active_feature(repo_root)
+                if feature is None:
+                    _log_action(
+                        feature="unknown",
+                        tool=tool_name,
+                        input_summary=f"file_path={file_path_str}",
+                        allowed=False,
+                        reason="No feature found in specs/ — approval gate is open.",
+                        repo_root=repo_root,
+                    )
+                    _deny(
+                        "SDDKit Gate: No approved feature found in specs/. "
+                        "Run /spec, /plan, /tasks and then "
+                        "`sddkit approve <feature> spec|plan|tasks` before writing source files."
+                    )
+                    return
+
+                if _is_gate_open(feature, repo_root):
+                    reason = (
+                        f"Feature '{feature}' approval gates are open. "
+                        "All three stages (spec, plan, tasks) must be approved. "
+                        f"Run: sddkit approve {feature} <spec|plan|tasks>"
+                    )
+                    _log_action(
+                        feature=feature,
+                        tool=tool_name,
+                        input_summary=f"file_path={file_path_str}",
+                        allowed=False,
+                        reason=reason,
+                        repo_root=repo_root,
+                    )
+                    _deny(f"SDDKit Gate: {reason}")
+                    return
+
+                # Gates are closed — allow and log
+                _log_action(
+                    feature=feature,
+                    tool=tool_name,
+                    input_summary=f"file_path={file_path_str}",
+                    allowed=True,
+                    reason="",
+                    repo_root=repo_root,
+                )
+
+    _allow()
+
+
+if __name__ == "__main__":
+    main()

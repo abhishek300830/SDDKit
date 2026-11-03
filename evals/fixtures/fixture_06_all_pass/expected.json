@@ -1,0 +1,4 @@
+{
+  "pass": true,
+  "description": "All REQs (REQ-001, REQ-002, REQ-003) are fully covered in plan, tasks, and tests — checker must pass (false-alarm test)."
+}

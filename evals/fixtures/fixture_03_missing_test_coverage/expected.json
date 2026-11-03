@@ -1,0 +1,4 @@
+{
+  "pass": false,
+  "description": "REQ-004 (Redis persistence) is in spec, plan, and tasks but has no test coverage — checker must fail."
+}

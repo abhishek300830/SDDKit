@@ -1,0 +1,6 @@
+{
+  "feature": "refund",
+  "spec":  { "approved": true,  "hash": "a1f3c2d4e5b6f7a8", "approved_at": "2025-01-10T10:00:00+00:00" },
+  "plan":  { "approved": true,  "hash": "9c2e1b3f4a5d6e7f", "approved_at": "2025-01-10T11:00:00+00:00" },
+  "tasks": { "approved": true,  "hash": "7f8a9b0c1d2e3f4a", "approved_at": "2025-01-10T12:00:00+00:00" }
+}
